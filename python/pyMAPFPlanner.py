@@ -120,7 +120,7 @@ class pyMAPFPlanner:
             return False
         loc2_x = loc2//self.env.cols
         loc2_y = loc2 % self.env.cols
-        if(abs(loc_x-loc2_x)+abs(loc_y-loc2_y) > 1):
+        if(abs(loc_x-loc2_x)+abs(loc_y-loc2_y) > 1): # checks if the move is diagonal
             return False
         return True
 
