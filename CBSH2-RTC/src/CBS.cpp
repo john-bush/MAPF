@@ -145,8 +145,7 @@ void CBS::findConflicts(CBSNode& curr)
 						break;
 					}
 				}
-				if (!skip)
-					findConflicts(curr, a1, a2);
+				findConflicts(curr, a1, a2);
 			}
 		}
 	}
@@ -404,8 +403,8 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound, int dire
 
 bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 {
-	int direction = 0;
 	clock_t t1 = clock();
+	int direction = 0;
 	node->parent = parent;
 	node->g_val = parent->g_val;
 	node->makespan = parent->makespan;
@@ -501,7 +500,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 			if (prev == x || curr == y ||
 				(prev == y && curr == x))
 			{
-				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1, direction))
+				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1))
 				{
 					runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 					return false;
@@ -615,9 +614,15 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 				 "runtime of rectangle conflicts,runtime of corridor conflicts,runtime of mutex conflicts," <<
 				 "runtime of building MDDs,runtime of building constraint tables,runtime of building CATs," <<
 				 "runtime of path finding,runtime of generating child nodes," <<
+                 "runtime_of_computing_second_heuristic,#cluster_solved,#cluster_memorized,#mutex_checking,#mutex_memorized," <<
+                 "#second_heuristic_computed,#second_heuristic_increased,total_second_heuristic_increased," <<
+                 "total cluster size,#cluster found,#node found bypass,#bypass found,total h value,total fh value,"<<
+                 "max num cluster,max cluster size,max second h,max num bypass,"<<
+                 "#fh computed,total fh,max fh,"<<
 				 "preprocessing runtime,solver name,instance name" << endl;
 		addHeads.close();
 	}
+
 	ofstream stats(fileName, std::ios::app);
 	stats << runtime << "," <<
 		  num_HL_expanded << "," << num_HL_generated << "," <<
@@ -640,8 +645,16 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 		  rectangle_helper.accumulated_runtime << "," << corridor_helper.accumulated_runtime << "," << mutex_helper.accumulated_runtime << "," <<
 		  mdd_helper.accumulated_runtime << "," << runtime_build_CT << "," << runtime_build_CAT << "," <<
 		  runtime_path_finding << "," << runtime_generate_child << "," <<
-
-		  runtime_preprocessing << "," << getSolverName() << "," << instanceName << endl;
+          heuristic_helper.runtime_of_computing_second_heuristic << "," << heuristic_helper.num_cluster_solved << "," << heuristic_helper.num_cluster_memorized<< "," <<
+          heuristic_helper.num_mutex_checking << "," <<heuristic_helper.num_mutex_memorized << "," << heuristic_helper.num_second_heuristic_computed << "," <<
+          heuristic_helper.num_second_heuristic_increased << "," <<heuristic_helper.total_second_heuristic_increased << "," <<
+          heuristic_helper.total_cluster_size << "," <<heuristic_helper.num_cluster_detected << "," <<
+          heuristic_helper.num_node_found_bypass<< "," <<heuristic_helper.num_bypass_found << "," <<
+          heuristic_helper.total_h_value << "," <<heuristic_helper.total_fh_value<< ","<<
+          heuristic_helper.max_num_cluster << "," <<heuristic_helper.max_cluster_size<< ","<<
+          heuristic_helper.max_second_h << "," <<heuristic_helper.max_num_bypass << ","<<
+          heuristic_helper.total_fh_computed << ","<<heuristic_helper.total_fh_value << "," <<heuristic_helper.max_fh<< ","<<
+    runtime_preprocessing << "," << getSolverName() << "," << instanceName << endl;
 	stats.close();
 }
 
@@ -754,6 +767,31 @@ string CBS::getSolverName() const
 		name += "+M";
 	if (bypass)
 		name += "+BP";
+
+    switch (heuristic_helper.ch_type)
+    {
+        case cluster_heuristics_type::N:
+            name += "+N";
+            break;
+        case cluster_heuristics_type::BP:
+            name += "+BP";
+            break;
+        case cluster_heuristics_type::CH:
+            name += "+CH";
+            break;
+        case cluster_heuristics_type::CHBPNM:
+            name += "+CHBPNM";
+            break;
+        case cluster_heuristics_type::CHBPNS:
+            name += "+CHBPNS";
+            break;
+        case cluster_heuristics_type::CHBPNRM:
+            name += "+CHBPNRM";
+            break;
+        case cluster_heuristics_type::CHBP:
+            name += "+CHBP";
+            break;
+    }
 	name += " with " + search_engines[0]->getName();
 	return name;
 }
@@ -853,6 +891,10 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				classifyConflicts(*curr);
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
 			bool succ = heuristic_helper.computeInformedHeuristics(*curr, time_limit - runtime);
+            if(curr->bypassFound){
+                // classify the new conflicts for bypasses.
+                classifyConflicts(*curr);
+            }
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
 			if (runtime > time_limit)
 			{  // timeout
@@ -899,7 +941,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 
 			if (disjoint_splitting && curr->conflict->type == conflict_type::STANDARD)
 			{
-				int first = (bool) (rand() % 2);
+				int first = (bool) (random_tie_breaker());
 				if (first) // disjoint splitting on the first agent
 				{
 					child[0]->constraints = curr->conflict->constraint1;
@@ -939,7 +981,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				child[1]->constraints = curr->conflict->constraint2;
 				if (curr->conflict->type == conflict_type::RECTANGLE && rectangle_helper.strategy == rectangle_strategy::DR)
 				{
-					int i = (bool)(rand() % 2);
+					int i = (bool)(random_tie_breaker());
 					for (const auto constraint : child[1 - i]->constraints)
 					{
 						child[i]->constraints.emplace_back(get<0>(constraint), get<1>(constraint), get<2>(constraint), get<3>(constraint), 
@@ -948,7 +990,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				}
 				else if (curr->conflict->type == conflict_type::CORRIDOR && corridor_helper.getStrategy() == corridor_strategy::DC)
 				{
-					int i = (bool)(rand() % 2);
+					int i = (bool)(random_tie_breaker());
 					assert(child[1 - i]->constraints.size() == 1);
 					auto constraint = child[1 - i]->constraints.front();
 					child[i]->constraints.emplace_back(get<0>(constraint), get<1>(constraint), get<2>(constraint), get<3>(constraint),

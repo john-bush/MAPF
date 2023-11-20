@@ -24,7 +24,7 @@ public:
 			if (n1->g_val + n1->h_val == n2->g_val + n2->h_val)
 			{
 				if (n1->h_val == n2->h_val)
-					return rand() % 2;
+					return random_tie_breaker();
 				return n1->h_val >= n2->h_val;
 			}
 			return n1->g_val + n1->h_val >= n2->g_val + n2->h_val;
@@ -40,7 +40,7 @@ public:
 			{
 				if (n1->g_val == n2->g_val)
 				{
-					return rand() % 2 == 0;
+					return random_tie_breaker() == 0;
 				}
 				return n1->g_val <= n2->g_val;  // break ties towards larger g_vals
 			}

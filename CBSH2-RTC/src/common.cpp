@@ -22,3 +22,8 @@ bool isSamePath(const Path& p1, const Path& p2)
 	}
 	return true;
 }
+
+int random_tie_breaker(){
+//    return 0 ;
+    return rand() % 2 ;
+}

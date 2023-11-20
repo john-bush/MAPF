@@ -568,3 +568,114 @@ unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i)
 	return loc2mdd;
 }
 
+SoftMDDNode* SoftMDD::find(int location, int level) {
+    if (level < (int) levels.size())
+        for (auto &it : levels[level])
+            if (it->location == location)
+                return it;
+    return nullptr;
+}
+
+void SoftMDD::fastCopyMDD(const MDD &cpy) {
+    reset();
+    resize(cpy.get_total_size());
+    levels.resize(cpy.levels.size());
+    for (int t = 0; t < (int) levels.size() ; t++)
+    {
+        levels[t].reserve(cpy.levels[t].size());
+        int position = 0;
+        for(auto& cpy_ptr : cpy.levels[t]){
+            (*cpy_ptr).position = position;
+            SoftMDDNode* node = allocate_node((*cpy_ptr).location,(*cpy_ptr).level);
+//            auto node = new SoftMDDNode((*cpy_ptr).location,(*cpy_ptr).level);
+            node->parents.reserve((*cpy_ptr).parents.size());
+            node->children.reserve((*cpy_ptr).children.size());
+            for(auto& parent_node :(*cpy_ptr).parents){
+                node->parents.push_back(*next(levels[t-1].begin(),parent_node->position));
+                node->parents.back()->children.push_back(node);
+            }
+            position++;
+            levels[t].push_back(node);
+        }
+    }
+}
+
+
+void SoftMDD::deleteNode(SoftMDDNode* node)
+{
+//    levels[node->level].remove(node);
+//
+    levels[node->level].erase(std::remove(levels[node->level].begin(), levels[node->level].end(), node),levels[node->level].end());
+    for (auto child = node->children.begin(); child != node->children.end(); ++child)
+    {
+//        (*child)->parents.remove(node);
+        (*child)->parents.erase(std::remove((*child)->parents.begin(), (*child)->parents.end(), node), (*child)->parents.end());
+        if ((*child)->parents.empty())
+            deleteNode(*child);
+    }
+    for (auto parent = node->parents.begin(); parent != node->parents.end(); ++parent)
+    {
+//        (*parent)->children.remove(node);
+        (*parent)->children.erase(std::remove((*parent)->children.begin(), (*parent)->children.end(), node), (*parent)->children.end());
+        if ((*parent)->children.empty())
+            deleteNode(*parent);
+    }
+//    delete node;
+}
+
+
+
+void SoftMDD::deleteEdge(SoftMDDNode *from, SoftMDDNode *to) {
+//    from->children.remove(to);
+//    to->parents.remove(from);
+
+    from->children.erase(std::remove(from->children.begin(), from->children.end(), to), from->children.end());
+    to->parents.erase(std::remove(to->parents.begin(), to->parents.end(), from), to->parents.end());
+    if(from->children.empty()){
+        deleteNode(from);
+    }
+    if(to->parents.empty()){
+        deleteNode(to);
+    }
+}
+
+
+
+void SoftMDD::deleteNode(SoftMDDNode* node, const vector<PathEntry>& main_path, bool& path_not_existed)
+{
+    levels[node->level].erase(std::remove(levels[node->level].begin(), levels[node->level].end(), node),levels[node->level].end());
+    if(main_path[node->level].location == node->location){
+        path_not_existed = true;
+    }
+    for (auto child = node->children.begin(); child != node->children.end(); ++child)
+    {
+        (*child)->parents.erase(std::remove((*child)->parents.begin(), (*child)->parents.end(), node), (*child)->parents.end());
+        if ((*child)->parents.empty())
+            deleteNode(*child,main_path, path_not_existed);
+    }
+    for (auto parent = node->parents.begin(); parent != node->parents.end(); ++parent)
+    {
+        (*parent)->children.erase(std::remove((*parent)->children.begin(), (*parent)->children.end(), node), (*parent)->children.end());
+        if ((*parent)->children.empty())
+            deleteNode(*parent,main_path, path_not_existed);
+    }
+}
+
+
+void SoftMDD::deleteEdge(SoftMDDNode *from, SoftMDDNode *to,const vector<PathEntry>& main_path, bool& path_not_existed) {
+    from->children.erase(std::remove(from->children.begin(), from->children.end(), to), from->children.end());
+    to->parents.erase(std::remove(to->parents.begin(), to->parents.end(), from), to->parents.end());
+    if(main_path[from->level].location == from->location && main_path[to->level].location == to->location  ){
+        path_not_existed = true;
+    }
+    if(from->children.empty()){
+        deleteNode(from, main_path,path_not_existed);
+    }
+    if(to->parents.empty()){
+        deleteNode(to, main_path,path_not_existed);
+    }
+}
+void SoftMDD::clear(){
+    node_pool.clear();
+}
+

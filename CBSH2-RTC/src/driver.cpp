@@ -1,9 +1,3 @@
-/* Copyright (C) Jiaoyang Li
-* Unauthorized copying of this file, via any medium is strictly prohibited
-* Confidential
-* Written by Jiaoyang Li <jiaoyanl@usc.edu>, March 2021
-*/
-
 /*driver.cpp
 * Solve a MAPF instance on 2D grids.
 */
@@ -42,7 +36,8 @@ int main(int argc, char** argv)
 
 		// params for CBS
 		("heuristics", po::value<string>()->default_value("WDG"), "heuristics for the high-level search (Zero, CG,DG, WDG)")
-		("prioritizingConflicts", po::value<bool>()->default_value(true), "conflict priortization. If true, conflictSelection is used as a tie-breaking rule.")
+        ("cluster_heuristics", po::value<string>()->default_value("N"), "cluster_heuristics heuristics for the high-level search (N, BP, CH, CHBPNS, CHBPNM,CHBPNRM, CHBP)")
+        ("prioritizingConflicts", po::value<bool>()->default_value(true), "conflict priortization. If true, conflictSelection is used as a tie-breaking rule.")
 		("bypass", po::value<bool>()->default_value(true), "Bypass1")
 		("disjointSplitting", po::value<bool>()->default_value(false), "disjoint splitting")
 		("rectangleReasoning", po::value<string>()->default_value("GR"), "rectangle reasoning strategy (None, R, RM, GR, Disjoint)")
@@ -80,6 +75,27 @@ int main(int argc, char** argv)
 		cout << "WRONG heuristics strategy!" << endl;
 		return -1;
 	}
+
+    cluster_heuristics_type ch;
+    if (vm["cluster_heuristics"].as<string>() == "N")
+        ch = cluster_heuristics_type::N;
+    else if (vm["cluster_heuristics"].as<string>() == "BP")
+        ch = cluster_heuristics_type::BP;
+    else if (vm["cluster_heuristics"].as<string>() == "CH")
+        ch = cluster_heuristics_type::CH;
+    else if (vm["cluster_heuristics"].as<string>() == "CHBPNM")
+        ch = cluster_heuristics_type::CHBPNM;
+    else if (vm["cluster_heuristics"].as<string>() == "CHBPNS")
+        ch = cluster_heuristics_type::CHBPNS;
+    else if (vm["cluster_heuristics"].as<string>() == "CHBPNRM")
+        ch = cluster_heuristics_type::CHBPNRM;
+    else if (vm["cluster_heuristics"].as<string>() == "CHBP")
+        ch = cluster_heuristics_type::CHBP;
+    else
+    {
+        cout << "WRONG cluster heuristics strategy!" << endl;
+        return -1;
+    }
 
 	rectangle_strategy r;
 	if (vm["rectangleReasoning"].as<string>() == "None")
@@ -140,6 +156,7 @@ int main(int argc, char** argv)
 	cbs.setRectangleReasoning(r);
 	cbs.setCorridorReasoning(c);
 	cbs.setHeuristicType(h);
+    cbs.setClusterHeuristicType(ch);
 	cbs.setTargetReasoning(vm["targetReasoning"].as<bool>());
 	cbs.setMutexReasoning(vm["mutexReasoning"].as<bool>());
 	cbs.setSavingStats(vm["stats"].as<bool>());

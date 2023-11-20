@@ -101,61 +101,123 @@ void ConstraintPropagation::add_fwd_node_mutex(MDDNode* node_a, MDDNode* node_b)
 	fwd_mutexes.insert({{ node_a, nullptr }, { node_b, nullptr }});
 }
 
+//
+//void ConstraintPropagation::init_mutex()
+//{
+//	int num_level = std::min(mdd0->levels.size(), mdd1->levels.size());
+//	// node mutex
+//	for (int i = 0; i < num_level; i++)
+//	{
+//		// COMMENT unordered map can be changed to vector for efficiency
+//		auto loc2mdd = collectMDDlevel(mdd0, i);
+//		for (MDDNode* it_1 : mdd1->levels[i])
+//		{
+//			if (loc2mdd.find(it_1->location) != loc2mdd.end())
+//			{
+//				add_fwd_node_mutex(loc2mdd[it_1->location], it_1);
+//			}
+//		}
+//	}
+//	// edge mutex
+//
+//	unordered_map<int, MDDNode*> loc2mddThisLvl;
+//	unordered_map<int, MDDNode*> loc2mddNextLvl = collectMDDlevel(mdd1, 0);
+//
+//	for (int i = 0; i < num_level - 1; i++)
+//	{
+//		loc2mddThisLvl = loc2mddNextLvl;
+//		loc2mddNextLvl = collectMDDlevel(mdd1, i + 1);
+//		for (auto& node_0 : mdd0->levels[i])
+//		{
+//			int loc_0 = node_0->location;
+//			if (loc2mddNextLvl.find(loc_0) == loc2mddNextLvl.end())
+//			{
+//				continue;
+//			}
+//			MDDNode* node_1_to = loc2mddNextLvl[loc_0];
+//
+//			for (auto node_0_to:node_0->children)
+//			{
+//				int loc_1 = node_0_to->location;
+//				if (loc2mddThisLvl.find(loc_1) == loc2mddThisLvl.end())
+//				{
+//					continue;
+//				}
+//
+//				MDDNode* node_1 = loc2mddThisLvl[loc_1];
+//				for (auto ptr:node_1->children)
+//				{
+//					if (ptr == node_1_to)
+//					{
+//						add_fwd_edge_mutex(node_0, node_0_to, node_1, node_1_to);
+//					}
+//				}
+//			}
+//		}
+//	}
+//}
+
 
 void ConstraintPropagation::init_mutex()
 {
-	int num_level = std::min(mdd0->levels.size(), mdd1->levels.size());
-	// node mutex
-	for (int i = 0; i < num_level; i++)
-	{
-		// COMMENT unordered map can be changed to vector for efficiency
-		auto loc2mdd = collectMDDlevel(mdd0, i);
-		for (MDDNode* it_1 : mdd1->levels[i])
-		{
-			if (loc2mdd.find(it_1->location) != loc2mdd.end())
-			{
-				add_fwd_node_mutex(loc2mdd[it_1->location], it_1);
-			}
-		}
-	}
-	// edge mutex
 
-	unordered_map<int, MDDNode*> loc2mddThisLvl;
-	unordered_map<int, MDDNode*> loc2mddNextLvl = collectMDDlevel(mdd1, 0);
+    int num_level = std::min(mdd0->levels.size(), mdd1->levels.size());
+    // node mutex
+    for (int i = 0; i < num_level; i++)
+    {
+        mdd_cache1.collectMDDlevel(mdd0,i);
+        for (MDDNode* it_1 : mdd1->levels[i])
+        {
+            if (mdd_cache1.is_set(it_1->location))
+            {
+                add_fwd_node_mutex(mdd_cache1.get(it_1->location), it_1);
+            }
+        }
+    }
+    // edge mutex
 
-	for (int i = 0; i < num_level - 1; i++)
-	{
-		loc2mddThisLvl = loc2mddNextLvl;
-		loc2mddNextLvl = collectMDDlevel(mdd1, i + 1);
-		for (auto& node_0 : mdd0->levels[i])
-		{
-			int loc_0 = node_0->location;
-			if (loc2mddNextLvl.find(loc_0) == loc2mddNextLvl.end())
-			{
-				continue;
-			}
-			MDDNode* node_1_to = loc2mddNextLvl[loc_0];
+    MDDCache* loc2mddThisLvl = &mdd_cache1;
+    MDDCache* loc2mddNextLvl = &mdd_cache2;
+    loc2mddNextLvl->collectMDDlevel(mdd1,0);
+    for (int i = 0; i < num_level - 1; i++)
+    {
+        MDDCache* tmp = loc2mddThisLvl;
+        loc2mddThisLvl->collectMDDlevel(mdd1, i + 1);
+        loc2mddThisLvl = loc2mddNextLvl;
+        loc2mddNextLvl = tmp;
+        for (auto& node_0 : mdd0->levels[i])
+        {
+            int loc_0 = node_0->location;
 
-			for (auto node_0_to:node_0->children)
-			{
-				int loc_1 = node_0_to->location;
-				if (loc2mddThisLvl.find(loc_1) == loc2mddThisLvl.end())
-				{
-					continue;
-				}
+            if (!loc2mddNextLvl->is_set(loc_0))
+            {
+                continue;
+            }
+            MDDNode* node_1_to = loc2mddNextLvl->get(loc_0);
 
-				MDDNode* node_1 = loc2mddThisLvl[loc_1];
-				for (auto ptr:node_1->children)
-				{
-					if (ptr == node_1_to)
-					{
-						add_fwd_edge_mutex(node_0, node_0_to, node_1, node_1_to);
-					}
-				}
-			}
-		}
-	}
+            for (auto node_0_to:node_0->children)
+            {
+                int loc_1 = node_0_to->location;
+                if (!loc2mddThisLvl->is_set(loc_1))
+                {
+                    continue;
+                }
+
+                MDDNode* node_1 = loc2mddThisLvl->get(loc_1);
+                for (auto ptr:node_1->children)
+                {
+                    if (ptr == node_1_to)
+                    {
+                        add_fwd_edge_mutex(node_0, node_0_to, node_1, node_1_to);
+                    }
+                }
+            }
+        }
+    }
+//    print_all_mutex();
+//    bool a =0;
 }
+
 
 void ConstraintPropagation::fwd_mutex_prop()
 {
@@ -605,4 +667,70 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
 	if (reversed)
 		return {cons_vec_1, cons_vec_0};
 	return {cons_vec_0, cons_vec_1};
+}
+
+void ConstraintPropagation::get_mutex_node(vector<tuple<int, int, int>> &main_mutex,
+                                           vector<tuple<int, int, int>> &secondary_mutex){
+//   tried not add dominated mutex node, but not much improvement
+//    mdd0->resetDominance();
+//    mdd1->resetDominance();
+    int mdd_size = min(mdd1->levels.size(),mdd0->levels.size());
+    for (int i = 1; i < mdd_size; i++) {
+
+        for (auto &curr_ptr_i: mdd0->levels[i]) {
+//            if(curr_ptr_i->is_dominate) continue;
+            bool is_mutex_node = true;
+            for (auto &it: mdd1->levels[i]) {
+                if (!has_fwd_mutex(curr_ptr_i, it)) {
+                    is_mutex_node = false;
+                    break;
+                }
+            }
+            if (is_mutex_node) {
+//                curr_ptr_i->is_dominate = true;
+//                for(auto& np : curr_ptr_i->children) mdd0->labelFwdDominance(np);
+                main_mutex.emplace_back(make_tuple(i, curr_ptr_i->location, -1));
+//                    std::cout<<"Found mutex"<< i << ", "<<curr_ptr_i->location << std::endl;
+            }
+
+            if(mdd1->levels[i].size() == 1 && mdd1->levels[i].front()->parents.size() == 1){
+                if(curr_ptr_i ->location == mdd1->levels[i].front()->parents.front()->location){
+                    for(auto& parent_ptr_i: curr_ptr_i->parents){
+                        if(parent_ptr_i->location == mdd1->levels[i].front()->location){
+                            main_mutex.emplace_back(make_tuple(i-1, parent_ptr_i->location, curr_ptr_i->location));
+                        }
+                    }
+                }
+            }
+        }
+
+
+        for (auto &curr_ptr_i:  mdd1->levels[i]) {
+//            if(curr_ptr_i->is_dominate) continue;
+            bool is_mutex_node = true;
+            for (auto &it: mdd0->levels[i]) {
+                if (!has_fwd_mutex(curr_ptr_i, it)) {
+                    is_mutex_node = false;
+                    break;
+                }
+            }
+            if (is_mutex_node) {
+//                curr_ptr_i->is_dominate = true;
+//                for(auto& np : curr_ptr_i->children) mdd1->labelFwdDominance(np);
+                secondary_mutex.emplace_back(make_tuple(i, curr_ptr_i->location, -1));
+//                    std::cout<<"Found mutex"<< i << ", "<<curr_ptr_i->location << std::endl;
+            }
+            if(mdd0->levels[i].size() == 1 && mdd0->levels[i].front()->parents.size() == 1){
+                // singleton edges
+                if(curr_ptr_i ->location == mdd0->levels[i].front()->parents.front()->location){
+                    for(auto& parent_ptr_i: curr_ptr_i->parents){
+                        if(parent_ptr_i->location == mdd0->levels[i].front()->location){
+                            secondary_mutex.emplace_back(make_tuple(i-1, parent_ptr_i->location, curr_ptr_i->location));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }

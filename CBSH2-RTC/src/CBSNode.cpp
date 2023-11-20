@@ -6,6 +6,8 @@ void CBSNode::clear()
 	conflicts.clear();
 	unknownConf.clear();
 	conflictGraph.clear();
+    mutexGraph.clear();
+    cluster_found.clear();
 }
 
 void CBSNode::printConflictGraph(int num_of_agents) const

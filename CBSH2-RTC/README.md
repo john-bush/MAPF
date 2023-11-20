@@ -1,126 +1,112 @@
-# CBSH2-RTC
-![test_ubuntu](https://github.com/Jiaoyang-Li/CBSH2-RTC/actions/workflows/test_ubuntu.yml/badge.svg)
-![test_macos](https://github.com/Jiaoyang-Li/CBSH2-RTC/actions/workflows/test_macos.yml/badge.svg)
+# CBSH2-RTC-CHBP
+An improvement technique of Conflict-Based Search (CBS) [1] for Multi-Agent Path Finding (MAPF).
+CHBP reasons the conflicts beyond the two agents and allow us to (i) generate stronger heuristics; and (ii) explore more bypasses. 
+CHBP can seamlessly integrate with the current state-of-the-art solver CBSH2-RTC. 
+Experimental results show that CHBP improves CBSH2-RTC by solving more instances. 
+On the co-solvable instances, CHBP runs faster than CBSH2-RTC with speedups ranging from several factors to over one order of magnitude.
 
-An optimal solver for Multi-Agent Path Finding.
+ 
+## Requirements 
+The implementation requires the external libraries: [CMake](https://cmake.org) and [Boost](https://www.boost.org/). 
 
-This solver consists of Conflict-Based Search [1] and many of its improvement techniques, including 
-* Prioritizing conflicts [2]
-* Bypassing conflicts [3]
-* High-level admissible heuristics:
-    * CG [4] 
-    * DG [5]
-    * WDG [5]
-* Symmetry reasoning techniques:
-    * rectangle reasoning [6] and generalized rectangle reasoning [7]
-    * target reasoning [8]
-    * corridor reasoning [8] and corridor-target reasoning [7]
-    * mutex propagation [9]
-* Disjoint splitting [10]
- 
- 
- 
-Please cite the following paper if you use the code in your published research:  
-Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, Hang Ma, Graeme Gange and Sven Koenig.
-[Pairwise Symmetry Reasoning for Multi-Agent Path Finding Search](https://doi.org/10.1016/j.artint.2021.103574).
-Artificial Intelligence (AIJ), volume 301, pages 103574, 2021.
- 
- ## Usage
-The code requires the external library [boost](https://www.boost.org/). 
-If you are using Ubuntu, you can install it simply by
+
+If you are using Ubuntu, you can install them simply by:
 ```shell script
-sudo apt install libboost-all-dev
+sudo apt-get install cmake
+sudo apt-get install libboost-all-dev
 ``` 
-Another easy way of installing the boost library is to install anaconda/miniconda and then 
+If you are using Mac, you can install them simply by:
 ```shell script
-conda install -c anaconda libboost
+brew install cmake
+brew install boost
 ```
-which works for a variety of [systems](https://anaconda.org/anaconda/libboost)
-(including linux, osx, and win).
-
-If neither of the above method works, you can also follow the instructions 
-on the [boost](https://www.boost.org/) website and install it manually.
+If the above methods do not work, you can also follow the instructions
+on the [CMake](https://cmake.org) or [Boost](https://www.boost.org/) website and install it manually.
 
 
-After you installed boost and downloaded the source code, go into the directory of the source code and compile it with CMake: 
+
+## Compiling and Running
+The current implementation is compiled with CMake, you can compile it from the directory of the source code by:
 ```shell script
 cmake -DCMAKE_BUILD_TYPE=RELEASE .
-make
+make -j
 ```
 
-Then, you are able to run the code:
-```shell script
-./cbs -m random-32-32-20.map -a random-32-32-20-random-1.scen -o test.csv --outputPaths=paths.txt -k 30 -t 60
-```
-
-- m: the map file from the MAPF benchmark
-- a: the scenario file from the MAPF benchmark
-- o: the output file that contains the search statistics
-- outputPaths: the output file that contains the paths 
-- k: the number of agents
-- t: runtime limit (in seconds)
-
-The above command runs the best variant of the code reported in [7] (i.e., using 
+Our implementation is based on [CBSH2-RTC](https://github.com/Jiaoyang-Li/CBSH2-RTC), the leading optimal solver for
+MAPF. By default, CBSH2-RTC runs the best variant of the code reported in [2] (i.e., using
 prioritizing conflicts,
 bypassing conflicts,
 WDG heuristics,
 target reasoning, and
 generalized rectangle and corridor reasoning).
+On top of this best variant, our implementation runs from a new flag "--cluster_heuristics", which contains four options:
 
-If you want to turn on/off some techniques,
-you can find more details and explanations for all parameters with:
+* N: CBSH2-RTC (without any modifications).
+* CH: CBSH2-RTC + Cluster Heuristic only.
+* BP: CBSH2-RTC + Bypass only.
+* CHBP: CBSH2-RTC + Cluster Heuristic and Bypass (final algorithm).
+
+Our final algorithm CHBP runs by:
 ```shell script
-./cbs --help
+./cbs -m random-32-32-20.map -a random-32-32-20-random-1.scen -o test.csv -k 30 -t 60 --cluster_heuristic=CHBP
 ```
+- m: the map file from the MAPF benchmark
+- a: the scenario file from the MAPF benchmark
+- o: the output file that contains the search statistics
+- k: the number of agents
+- t: runtime limit (in seconds)
+- --cluster_heuristic: our new improvement algorithm CHBP.
 
-To test the code on more instances,
-you can download the MAPF instances from the [MAPF benchmark](https://movingai.com/benchmarks/mapf/index.html).
-In particular, the format of the scen files is explained [here](https://movingai.com/benchmarks/formats.html). 
+
+
+## Dataset
+To test the code on more instances or easily reproduce our experiments, 
+we include the MAPF instances downloaded from the [MAPF benchmark](https://movingai.com/benchmarks/mapf/index.html).
+In particular, the format of the scen files is explained [here](https://movingai.com/benchmarks/formats.html).
 For a given number of agents k, the first k rows of the scen file are used to generate the k pairs of start and target locations.
 
-## License
-The code is released under USC – Research License. See license.md for further details.
+All maps and scenario files are included in the "/dataset" folder. 
 
-I would like to thank Han Zhang for providing the code for mutex propagation.
 
+
+## Guideline
+Here, we give a short guideline in order to access our codes:
+
+- Our implementation mainly modifies the following files:
+  - "/inc/CBSHeuristic.h"
+  - "/src/CBSHeuristic.cpp" 
+- According to our paper, the pseudo-code of algorithms indicate the following functions in our implementation:
+  - Algorithm 1: computeClusterHeuristicAndBypass()
+  - Algorithm 2: findClusterOrBypass()
+- We provide bash scripts that automatically run all experiments reported in our paper.
+The bash script also creates "/results" folder under the current directory, all results will appear in this folder.
+To reproduce our experiment, please run: 
+  - ```shell script
+    bash ./run_all_experiments.sh
+    ```
+- To visualize the experimental results or reproduce the plots in our paper, 
+we provide bash and python scripts. For python scripts, we require the external libraries: [pandas](https://pandas.pydata.org), 
+[NumPy](https://numpy.org), [matplotlib](https://matplotlib.org) and [jupyter](https://jupyter.org).
+Please install them properly. Once installed, please go to "/analysis" folder:
+  - run bash scripts to merge all experimental results.
+      ```shell script
+      bash ./merge_results.sh
+      ```
+  - use python scripts in "/analysis/experiments.ipynb" to generate plots to "/analysis/fig"
+      ```shell script
+      jupyter notebook experiments.ipynb
+      ```
+Contact
+===========================================================
+For any question, please contact Bojie.Shen@monash.edu.
+
+[//]: # (**Note that the license is removed for anonymous purposes. Please do not distribute the codes.**)
 ## References
 
 [1] Guni Sharon, Roni Stern, Ariel Felner, and Nathan R. Sturtevant.
 Conflict-Based Search for Optimal Multi-Agent Pathfinding.
 Artificial Intelligence, 219:40–66, 2015.
 
-[2] Eli Boyarski, Ariel  Felner, Roni Stern, Guni Sharon, David Tolpin, Oded Betzalel, and Solomon Eyal Shimony.
-ICBS: Improved Conflict-Based Search Algorithm for Multi-Agent Pathfinding. 
-In Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI), pages 740–746, 2015.
-
-[3] Eli Boyarski, Ariel Felner, Guni Sharon, and Roni Stern.
-Don't Split, Try to Work It Out: Bypassing Conflicts in Multi-Agent Pathfinding. 
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 47-51, 2015.
-
-[4] Ariel Felner, Jiaoyang Li, Eli Boyarski, Hang Ma, Liron Cohen, T. K. Satish Kumar, and Sven Koenig.
-Adding Heuristics to Conflict-Based Search for Multi-Agent Path Finding. 
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 83-87, 2018.
-
-[5] Jiaoyang Li, Ariel Felner, Eli Boyarski, Hang Ma, and Sven Koenig.
-Improved Heuristics for Multi-Agent Path Finding with Conflict-Based Search.
-In Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI), pages 442-449, 2019.
-
-[6] Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, Hang Ma, and Sven Koenig.
-Symmetry-Breaking Constraints for Grid-Based Multi-Agent Path Finding.
-In Proceedings of the AAAI Conference on Artificial Intelligence (AAAI), pages 6087-6095, 2019.
-
-[7] Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, and Sven Koenig. 
+[2] Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, and Sven Koenig.
 Pairwise Symmetry Reasoning for Multi-Agent Path Finding Search.
-CoRR, abs/2103.07116, 2021.
-
-[8] Jiaoyang Li, Graeme Gange, Daniel Harabor, Peter J. Stuckey, Hang Ma, and Sven Koenig.
-New Techniques for Pairwise Symmetry Breaking in Multi-Agent Path Finding.
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 193-201, 2020.
-
-[9] Han Zhang, Jiaoyang Li, Pavel Surynek, Sven Koenig, and T. K. Satish Kumar.
-Multi-Agent Path Finding with Mutex Propagation.
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 323-332, 2020.
- 
-[10] Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, Ariel Felner, Hang Ma, and Sven Koenig.
-Disjoint Splitting for Multi-Agent Path Finding with Conflict-Based Search.
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 279-283, 2019.
+Artificial Intelligence, 301: 103574, 2021.

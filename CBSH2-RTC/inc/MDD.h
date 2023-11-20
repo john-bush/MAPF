@@ -29,6 +29,8 @@ public:
 
 	list<MDDNode*> children;
 	list<MDDNode*> parents;
+
+    int position = 0;
 };
 
 class MDD
@@ -51,6 +53,13 @@ public:
 
 	void increaseBy(const ConstraintTable& ct, int dLevel, SingleAgentSolver* solver);
 	MDDNode* goalAt(int level);
+    size_t get_total_size() const{
+        size_t size = 0;
+        for(auto& level: levels){
+            size += level.size();
+        }
+        return size;
+    }
 
 	MDD() = default;
 	MDD(const MDD& cpy);
@@ -134,3 +143,102 @@ private:
 };
 
 unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);
+
+class SoftMDDNode
+{
+public:
+    int location;
+    int level;
+    SoftMDDNode(int currloc, int curlevel)
+    {
+        location = currloc;
+        level = curlevel;
+    }
+    SoftMDDNode() = default;
+    bool operator==(const SoftMDDNode& node) const
+    {
+        return (this->location == node.location);
+    }
+
+    vector<SoftMDDNode*> children;
+    vector<SoftMDDNode*> parents;
+
+    int num_of_conflict = 0;
+    int min_total_conflict =0;
+
+    vector<int> node_conflict_agent; // for node
+
+    SoftMDDNode* pre_node = nullptr;
+};
+
+
+
+
+class SoftMDD
+{
+    // quick soft copy of MDD, use vector-based implementation.
+    // completely get ride of list;
+private:
+    vector<SoftMDDNode> node_pool;
+    int np_counter;
+    int increase_size;
+
+    SoftMDDNode* allocate_node(int location, int level){
+        np_counter++;
+//        if(np_counter == node_pool.size()){
+//            node_pool.resize(node_pool.size() + increase_size);
+//        }
+        node_pool[np_counter].children.clear(); node_pool[np_counter].parents.clear();
+        node_pool[np_counter].level = level; node_pool[np_counter].location = location;
+        node_pool[np_counter].node_conflict_agent.clear();
+        node_pool[np_counter].pre_node = nullptr; node_pool[np_counter].num_of_conflict  = 0;
+        return &node_pool[np_counter];
+    }
+
+    void reset(){
+        np_counter = 0;
+    }
+
+
+public:
+    vector<vector<SoftMDDNode*>> levels;
+    bool is_labeled = false;
+
+    vector<boost::unordered_map<size_t, vector<int>>> edge_conflict_agent;
+//    vector<vector<int>> edge_conflict_agent; // for parent edge.
+    SoftMDDNode* find(int location, int level);
+
+//    void print();
+    void deleteNode(SoftMDDNode* node);
+    void deleteEdge(SoftMDDNode* from, SoftMDDNode* to);
+    void deleteNode(SoftMDDNode* node, const vector<PathEntry>& main_path, bool& path_not_existed);
+    void deleteEdge(SoftMDDNode* from, SoftMDDNode* to, const vector<PathEntry>& main_path, bool& path_not_existed);
+
+    void clear();
+    void fastCopyMDD(const MDD& cpy);
+    explicit SoftMDD(int pool_size){
+        increase_size = pool_size;
+        node_pool =vector<SoftMDDNode>(pool_size);
+        np_counter = 0;
+    }
+
+    void resize(size_t MDD_size){
+        if(MDD_size > node_pool.size()){
+            node_pool.clear();
+            node_pool.resize((MDD_size / increase_size +1) * increase_size);
+        }
+    }
+
+    void init(int pool_size){
+        increase_size = 10000;
+        node_pool = vector<SoftMDDNode>(pool_size);
+    }
+
+    SoftMDD(){
+        increase_size =0;
+        np_counter =0;
+    }
+    ~SoftMDD(){
+        clear();
+    }
+};

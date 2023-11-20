@@ -44,7 +44,7 @@ using std::string;
 struct PathEntry
 {
 	int location = -1;
-    int direction = 0;
+    int direction = 0; 
 	// bool single = false;
 	int mdd_width = 0;  // TODO:: Myabe this can be deleted as we always build/look for MDDs when we classify conflicts
 
@@ -60,6 +60,7 @@ std::ostream& operator<<(std::ostream& os, const Path& path);
 
 bool isSamePath(const Path& p1, const Path& p2);
 
+int random_tie_breaker();
 // Only for three-tuples of std::hash-able types for simplicity.
 // You can of course template this struct to allow other hash functions
 /*struct three_tuple_hash {

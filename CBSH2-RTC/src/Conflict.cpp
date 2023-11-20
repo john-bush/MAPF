@@ -99,7 +99,7 @@ bool operator<(const Conflict& conflict1, const Conflict& conflict2) // return t
 		{
 			if (conflict1.secondary_priority == conflict2.secondary_priority)
 			{
-				return rand() % 2;
+				return random_tie_breaker();
 			}
 			return conflict1.secondary_priority > conflict2.secondary_priority;
 		}

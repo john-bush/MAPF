@@ -89,7 +89,7 @@ public:
 	{
 		assert(loc >= 0 && loc < map_size && !my_map[loc]);
 		int degree = 0;
-		if (0 <= loc - num_of_cols && !my_map[loc - num_of_cols])
+		if (0 < loc - num_of_cols && !my_map[loc - num_of_cols])
 			degree++;
 		if (loc + num_of_cols < map_size && !my_map[loc + num_of_cols])
 			degree++;
@@ -121,7 +121,7 @@ private:
 
 	  void generateConnectedRandomGrid(int rows, int cols, int obstacles); // initialize new [rows x cols] map with random obstacles
 	  void generateRandomAgents(int warehouse_width);
-	  bool addObstacle(int obstacle); // add this obsatcle only if the map is still connected
+	  bool addObstacle(int obstacle); // add this obstacle only if the map is still connected
 	  bool isConnected(int start, int goal) const; // run BFS to find a path between start and goal, return true if a path exists.
 
 	int randomWalk(int loc, int steps) const;
