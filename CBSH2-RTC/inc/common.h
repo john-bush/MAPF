@@ -44,6 +44,7 @@ using std::string;
 struct PathEntry
 {
 	int location = -1;
+    int direction = 0;
 	// bool single = false;
 	int mdd_width = 0;  // TODO:: Myabe this can be deleted as we always build/look for MDDs when we classify conflicts
 
@@ -51,7 +52,7 @@ struct PathEntry
 	{
 		return mdd_width == 1;
 	}
-	PathEntry(int loc = -1) { location = loc;}
+	PathEntry(int loc = -1, int dir = 0) { location = loc; direction = dir;}
 };
 
 typedef vector<PathEntry> Path;

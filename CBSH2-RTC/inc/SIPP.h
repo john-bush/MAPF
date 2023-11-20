@@ -16,9 +16,9 @@ public:
 
 	SIPPNode() : LLNode() {}
 
-	SIPPNode(int loc, int g_val, int h_val, SIPPNode* parent, int timestep, const Interval& interval,
+	SIPPNode(int loc, int dir, int g_val, int h_val, SIPPNode* parent, int timestep, const Interval& interval,
 			int num_of_conflicts = 0, bool in_openlist = false) :
-			LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist), interval(interval) {}
+			LLNode(loc, dir, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist), interval(interval) {}
 
 	SIPPNode(const SIPPNode& other)
 	{
@@ -70,7 +70,7 @@ public:
 	// minimizing the number of internal conflicts (that is conflicts with known_paths for other agents found so far).
 	// lowerbound is an underestimation of the length of the path in order to speed up the search.
 	Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
-		const vector<Path*>& paths, int agent, int lowerbound);
+		const vector<Path*>& paths, int agent, int lowerbound, int direction);
 	int getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound);
 
 	string getName() const { return "SIPP"; }

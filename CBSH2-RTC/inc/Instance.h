@@ -30,6 +30,7 @@ public:
 	}
 
 	list<int> getNeighbors(int curr) const;
+	list<pair<int,int>> getNeighbors(int curr, int direction) const;
     inline int linearizeCoordinate(int row, int col) const { return ( this->num_of_cols * row + col); }
 	inline int linearizeCoordinate(const pair<int, int>& cell) const { return linearizeCoordinate(cell.first, cell.second); }
 	inline int getRowCoordinate(int id) const { return id / this->num_of_cols; }

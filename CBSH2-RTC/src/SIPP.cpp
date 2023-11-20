@@ -29,7 +29,7 @@ void SIPP::updatePath(const LLNode* goal, vector<PathEntry>& path)
 // minimizing the number of internal conflicts (that is conflicts with known_paths for other agents found so far).
 // lowerbound is an underestimation of the length of the path in order to speed up the search.
 Path SIPP::findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
-					const vector<Path*>& paths, int agent, int lowerbound)
+					const vector<Path*>& paths, int agent, int lowerbound, int direction)
 {
 	Path path;
 	auto t = clock();
@@ -50,7 +50,7 @@ Path SIPP::findPath(const CBSNode& node, const ConstraintTable& initial_constrai
 		return path;
 
 	// generate start and add it to the OPEN list
-	auto start = new SIPPNode(start_location, 0, my_heuristic[start_location], nullptr, 0, interval, 0, false);
+	auto start = new SIPPNode(start_location, start_direction, 0, my_heuristic[start_location], nullptr, 0, interval, 0, false);
 
 	num_generated++;
 	start->open_handle = open_list.push(start);
@@ -69,6 +69,7 @@ Path SIPP::findPath(const CBSNode& node, const ConstraintTable& initial_constrai
 		open_list.erase(curr->open_handle);
 		curr->in_openlist = false;
 		num_expanded++;
+		cout << curr->location << endl;
 
 		// check if the popped node is a goal node
 		if (curr->location == goal_location && // arrive at the goal location
@@ -161,7 +162,7 @@ void SIPP::generateChild(const Interval& interval, SIPPNode* curr, int next_loca
 	int next_conflicts = curr->num_of_conflicts + get<2>(interval);
 
 	// generate (maybe temporary) node
-	auto next = new SIPPNode(next_location, next_g_val, next_h_val, curr, next_timestep, interval, next_conflicts, false);
+	auto next = new SIPPNode(next_location, 0, next_g_val, next_h_val, curr, next_timestep, interval, next_conflicts, false);
 	if (next_location == goal_location && curr->location == goal_location)
 		next->wait_at_goal = true;
 	// try to retrieve it from the hash table
@@ -222,7 +223,7 @@ int SIPP::getTravelTime(int end, const ConstraintTable& constraint_table, int up
 	{
 		return length;
 	}
-	auto root = new SIPPNode(start_location, 0, compute_heuristic(start_location, end), nullptr, 0, Interval(0, 1, 0));
+	auto root = new SIPPNode(start_location, start_direction, 0, compute_heuristic(start_location, end), nullptr, 0, Interval(0, 1, 0));
 	root->open_handle = open_list.push(root);  // add root to heap
 	allNodes_table.insert(root);       // add root to hash_table (nodes)
 	SIPPNode* curr = nullptr;
@@ -254,7 +255,7 @@ int SIPP::getTravelTime(int end, const ConstraintTable& constraint_table, int up
 				int next_h_val = compute_heuristic(next_location, end);
 				if (next_g_val + next_h_val >= upper_bound) // the cost of the path is larger than the upper bound
 					continue;
-				auto next = new SIPPNode(next_location, next_g_val, next_h_val, nullptr, next_timestep,
+				auto next = new SIPPNode(next_location, 0, next_g_val, next_h_val, nullptr, next_timestep,
 										 Interval(next_timestep, next_timestep + 1, 0));
 				auto it = allNodes_table.find(next);
 				if (it == allNodes_table.end())

@@ -7,6 +7,7 @@ class LLNode // low-level node
 {
 public:
 	int location;
+	int direction;
 	int g_val;
 	int h_val = 0;
 	LLNode* parent;
@@ -48,10 +49,10 @@ public:
 	};  // used by FOCAL (heap) to compare nodes (top of the heap has min number-of-conflicts)
 
 
-	LLNode() : location(0), g_val(0), h_val(0), parent(nullptr), timestep(0), num_of_conflicts(0), in_openlist(false), wait_at_goal(false) {}
+	LLNode() : location(0), direction(0), g_val(0), h_val(0), parent(nullptr), timestep(0), num_of_conflicts(0), in_openlist(false), wait_at_goal(false) {}
 
-	LLNode(int location, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
-		location(location), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
+	LLNode(int location, int direction, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
+		location(location), direction(direction), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
 		num_of_conflicts(num_of_conflicts), in_openlist(in_openlist), wait_at_goal(false) {}
 
 	inline double getFVal() const { return g_val + h_val; }
@@ -78,6 +79,7 @@ public:
 	double runtime_build_CAT = 0; // runtime of building conflict avoidance table
 
 	int start_location;
+	int start_direction;
 	int goal_location;
 	vector<int> my_heuristic;  // this is the precomputed heuristic for this agent
 	int compute_heuristic(int from, int to) const  // compute admissible heuristic between two locations
@@ -87,7 +89,7 @@ public:
 	const Instance& instance;
 
 	virtual Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
-		const vector<Path*>& paths, int agent, int lower_bound) = 0;
+		const vector<Path*>& paths, int agent, int lower_bound, int direction) = 0;
 	virtual int getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound) = 0;
 	virtual string getName() const = 0;
 

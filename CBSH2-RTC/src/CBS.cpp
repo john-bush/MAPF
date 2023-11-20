@@ -373,14 +373,14 @@ void CBS::removeLowPriorityConflicts(list<shared_ptr<Conflict>>& conflicts) cons
 }
 
 
-bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
+bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound, int direction)
 {
 	clock_t t = clock();
 	// build reservation table
 	// CAT cat(node->makespan + 1);  // initialized to false
 	// updateReservationTable(cat, ag, *node);
 	// find a path
-	Path new_path = search_engines[ag]->findPath(*node, initial_constraints[ag], paths, ag, lowerbound);
+	Path new_path = search_engines[ag]->findPath(*node, initial_constraints[ag], paths, ag, lowerbound, direction);
 	num_LL_expanded += search_engines[ag]->num_expanded;
 	num_LL_generated += search_engines[ag]->num_generated;
 	runtime_build_CT += search_engines[ag]->runtime_build_CT;
@@ -404,6 +404,7 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 
 bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 {
+	int direction = 0;
 	clock_t t1 = clock();
 	node->parent = parent;
 	node->g_val = parent->g_val;
@@ -421,7 +422,21 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 		{
 			int a = get<0>(node->constraints.back()); // it is a G-length constraint or a range constraint on this agent
 			int lowerbound = (int)paths[a]->size() - 1;
-			if (!findPathForSingleAgent(node, a, lowerbound))
+			// find the direction
+			int constrain_location = get<1>(node->constraints.back());
+
+			for (list<pair<int, Path>>::iterator it=node->paths.begin(); it != node->paths.end(); ++it) {
+				if ((*it).first == a) {
+					Path temp_path = (*it).second;
+					for (PathEntry p : temp_path) {
+						if (constrain_location == p.location) {
+							direction = p.direction;
+						}
+					}
+				}
+			}
+
+			if (!findPathForSingleAgent(node, a, lowerbound, direction))
 			{
 				runtime_generate_child += (double)(clock() - t1) / CLOCKS_PER_SEC;
 				return false;
@@ -438,7 +453,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 				if (paths[ag]->at(i).location == x)
 				{
 					int lowerbound = (int) paths[ag]->size() - 1;
-					if (!findPathForSingleAgent(node, ag, lowerbound))
+					if (!findPathForSingleAgent(node, ag, lowerbound, direction))
 					{
 						runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 						return false;
@@ -462,7 +477,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 				}
 				if (getAgentLocation(ag, t) == x)
 				{
-					if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1))
+					if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1, direction))
 					{
 						runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 						return false;
@@ -486,7 +501,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 			if (prev == x || curr == y ||
 				(prev == y && curr == x))
 			{
-				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1))
+				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1, direction))
 				{
 					runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 					return false;
@@ -498,7 +513,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	else
 	{
 		int lowerbound = (int) paths[agent]->size() - 1;
-		if (!findPathForSingleAgent(node, agent, lowerbound))
+		if (!findPathForSingleAgent(node, agent, lowerbound, direction))
 		{
 			runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 			return false;
@@ -1145,7 +1160,9 @@ bool CBS::generateRoot()
 		{
 			//CAT cat(dummy_start->makespan + 1);  // initialized to false
 			//updateReservationTable(cat, i, *dummy_start);
-			paths_found_initially[i] = search_engines[i]->findPath(*dummy_start, initial_constraints[i], paths, i, 0);
+			cout << "finding path for agent " << i << endl;
+			paths_found_initially[i] = search_engines[i]->findPath(*dummy_start, initial_constraints[i], paths, i, 0, 0);
+			cout << paths_found_initially[i] << endl;
 			if (paths_found_initially[i].empty())
 			{
 				cout << "No path exists for agent " << i << endl;

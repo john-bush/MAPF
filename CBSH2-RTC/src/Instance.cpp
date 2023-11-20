@@ -393,12 +393,16 @@ bool Instance::loadAgents()
 				int col = atoi((*beg).c_str());
 				beg++;
 				int row = atoi((*beg).c_str());
+				cout << "start: " << col << " " << row << endl;
+				cout << linearizeCoordinate(row, col) << endl;
 				start_locations[i] = linearizeCoordinate(row, col);
 				// read goal [row,col] for agent i
 				beg++;
 				col = atoi((*beg).c_str());
 				beg++;
 				row = atoi((*beg).c_str());
+				cout << "goal: " << col << " " << row << endl;
+				cout << linearizeCoordinate(row, col) << endl;
 				goal_locations[i] = linearizeCoordinate(row, col);
 				i++;
 			}
@@ -474,5 +478,54 @@ list<int> Instance::getNeighbors(int curr) const
 		if (validMove(curr, next))
 			neighbors.emplace_back(next);
 	}
+	return neighbors;
+}
+
+list<pair<int, int>> Instance::getNeighbors(int curr, int direction) const
+{
+	list<pair<int, int>> neighbors;
+
+	int next_location = curr;
+	if (direction == 0) { next_location += 1;}
+	else if (direction == 1) { next_location += num_of_cols; }
+	else if (direction == 2) { next_location -= 1;}
+	else { next_location -= num_of_cols; }
+
+	pair<int, int> next;
+	// move forward 
+	if (validMove(curr, next_location)) {
+		next.first = next_location;
+		next.second = direction;
+		neighbors.emplace_back(next);
+	}
+
+	// clockwise
+	int new_direction = 0;
+	if (direction == 0 || direction == 1 || direction == 2) {
+		new_direction = direction + 1;
+	}
+	else {
+		new_direction = 0;
+	}
+	next.first = curr;
+	next.second = new_direction;
+	neighbors.emplace_back(next);
+
+	// counter-clockwise
+	if (direction == 1 || direction == 2 || direction == 3) {
+		new_direction = direction - 1;
+	}
+	else {
+		new_direction = 3;
+	}
+	next.first = curr;
+	next.second = new_direction;
+	neighbors.emplace_back(next);
+
+	// wait
+	next.first = curr;
+	next.second = direction;
+	neighbors.emplace_back(next);
+
 	return neighbors;
 }

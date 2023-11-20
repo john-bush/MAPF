@@ -17,8 +17,8 @@ public:
 
 	AStarNode() : LLNode() {}
 
-	AStarNode(int loc, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
-		LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist) {}
+	AStarNode(int loc, int dir, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
+		LLNode(loc, dir, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist) {}
 
 	/*AStarNode(const AStarNode& other)
 	{
@@ -42,7 +42,10 @@ public:
 		{
 			size_t loc_hash = std::hash<int>()(n->location);
 			size_t timestep_hash = std::hash<int>()(n->timestep);
-			return (loc_hash ^ (timestep_hash << 1));
+			size_t direction_hash = std::hash<int>()(n->direction);
+			int temp = (int) 0.5*(loc_hash+timestep_hash)*(loc_hash+timestep_hash+1) + timestep_hash;
+
+			return (int)(0.5 * (temp + direction_hash) * (temp + direction_hash + 1) + direction_hash);
 		}
 	};
 
@@ -55,6 +58,7 @@ public:
 		{
 			return (s1 == s2) || (s1 && s2 &&
 					s1->location == s2->location &&
+					s1->direction == s2->direction &&
 					s1->timestep == s2->timestep &&
 					s1->wait_at_goal == s2->wait_at_goal) &&
 					s1->unsatisfied_positive_constraint_sets == s2->unsatisfied_positive_constraint_sets;
@@ -71,7 +75,7 @@ public:
 	// minimizing the number of internal conflicts (that is conflicts with known_paths for other agents found so far).
 	// lowerbound is an underestimation of the length of the path in order to speed up the search.
 	Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
-				  const vector<Path*>& paths, int agent, int lower_bound);
+				  const vector<Path*>& paths, int agent, int lower_bound, int direction);
 
 	int getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound);
 
@@ -95,10 +99,10 @@ private:
 	hashtable_t allNodes_table;
 
 	// find path
-	Path findShortestPath(ConstraintTable& constraint_table, const pair<int, int> start_state, int lowerbound);
+	Path findShortestPath(ConstraintTable& constraint_table, const pair<int, int> start_state, int lowerbound, int direction);
     Path findShortestPath(ConstraintTable& constraint_table, const pair<int, int> start_state, int lowerbound,
-            const pair<int, int> landmark);
-	Path findPath(ConstraintTable& constraint_table, const pair<int, int> start, const pair<int, int> goal);
+            const pair<int, int> landmark, int direction);
+	Path findPath(ConstraintTable& constraint_table, const pair<int, int> start, const pair<int, int> goal, int direction);
 
 	// Updates the path datamember
 	static void updatePath(const LLNode* goal, vector<PathEntry> &path);
