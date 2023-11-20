@@ -403,8 +403,8 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound, int dire
 
 bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 {
-	clock_t t1 = clock();
 	int direction = 0;
+	clock_t t1 = clock();
 	node->parent = parent;
 	node->g_val = parent->g_val;
 	node->makespan = parent->makespan;
@@ -500,7 +500,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 			if (prev == x || curr == y ||
 				(prev == y && curr == x))
 			{
-				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1))
+				if (!findPathForSingleAgent(node, ag, (int) paths[ag]->size() - 1, direction))
 				{
 					runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 					return false;

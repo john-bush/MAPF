@@ -44,7 +44,7 @@ using std::string;
 struct PathEntry
 {
 	int location = -1;
-    int direction = 0; 
+    int direction = 0;
 	// bool single = false;
 	int mdd_width = 0;  // TODO:: Myabe this can be deleted as we always build/look for MDDs when we classify conflicts
 

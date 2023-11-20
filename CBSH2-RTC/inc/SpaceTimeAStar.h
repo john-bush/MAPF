@@ -42,6 +42,7 @@ public:
 		{
 			size_t loc_hash = std::hash<int>()(n->location);
 			size_t timestep_hash = std::hash<int>()(n->timestep);
+			// return (loc_hash ^ (timestep_hash << 1));
 			size_t direction_hash = std::hash<int>()(n->direction);
 			int temp = (int) 0.5*(loc_hash+timestep_hash)*(loc_hash+timestep_hash+1) + timestep_hash;
 

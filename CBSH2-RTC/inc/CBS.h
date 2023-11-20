@@ -119,7 +119,8 @@ private:
 
 
 	// high level search
-	bool findPathForSingleAgent(CBSNode*  node, int ag, int lower_bound = 0, int direction=0);
+	// bool findPathForSingleAgent(CBSNode*  node, int ag, int lower_bound = 0);
+	bool findPathForSingleAgent(CBSNode*  node, int ag, int lower_bound = 0, int direction = 0);
 	bool generateChild(CBSNode* child, CBSNode* curr);
 	bool generateRoot();
 

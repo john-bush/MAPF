@@ -480,7 +480,6 @@ list<int> Instance::getNeighbors(int curr) const
 	}
 	return neighbors;
 }
-
 list<pair<int, int>> Instance::getNeighbors(int curr, int direction) const
 {
 	list<pair<int, int>> neighbors;
@@ -526,6 +525,5 @@ list<pair<int, int>> Instance::getNeighbors(int curr, int direction) const
 	next.first = curr;
 	next.second = direction;
 	neighbors.emplace_back(next);
-
 	return neighbors;
 }
